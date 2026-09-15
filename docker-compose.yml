@@ -1,0 +1,145 @@
+services:
+
+  # -------------------------
+  # MongoDB Database
+  # -------------------------
+  mongo:
+    # Official MongoDB image from Docker Hub
+    image: mongo
+
+    # Custom container name
+    container_name: mongodbproject
+
+    # Host port : Container port
+    # Allows MongoDB Compass on your computer to connect
+    ports:
+      - "27017:27017"
+
+    # MongoDB root username and password
+    environment:
+      - MONGO_INITDB_ROOT_USERNAME=admin
+      - MONGO_INITDB_ROOT_PASSWORD=password
+
+    # Persist MongoDB data
+    # Data remains even if the MongoDB container is removed
+    volumes:
+      - mongo-data:/data/db
+
+
+  # -------------------------
+  # Node.js / Express Backend
+  # -------------------------
+  backend:
+    # Build the image using the Dockerfile inside ./backend
+    build: ./backend
+
+    # Host port : Container port
+    ports:
+      - "5000:5000"
+
+    # Mount local backend source code into the container
+    # Allows code changes on your computer to appear inside Docker
+    volumes:
+      - ./backend:/app
+
+      # Keep Docker's node_modules separate from Windows node_modules
+      - /app/node_modules
+
+    # Environment variables
+    environment:
+      - CHOKIDAR_USEPOLLING=true
+      - WATCHPACK_POLLING=true
+      - NODE_ENV=development
+
+    # Start MongoDB container before backend
+    depends_on:
+      - mongo
+
+    # Automatically restart unless manually stopped
+    restart: unless-stopped
+
+
+  # -------------------------
+  # React / Vite Frontend
+  # -------------------------
+  frontend:
+    # Build the image using the Dockerfile inside ./frontend
+    build: ./frontend
+
+    # Host port : Container port
+    # Browser: localhost:3000
+    # Container: Vite runs on 5173
+    ports:
+      - "3000:5173"
+
+    # Mount local frontend source code into the container
+    volumes:
+      - ./frontend:/app
+
+      # Keep Docker's node_modules separate from Windows node_modules
+      - /app/node_modules
+
+    # Environment variables
+    environment:
+      - CHOKIDAR_USEPOLLING=true
+      - WATCHPACK_POLLING=true
+      - FAST_REFRESH=true
+
+    # Start backend before frontend
+    depends_on:
+      - backend
+
+    # Keep standard input open
+    stdin_open: true
+
+    # Allocate a terminal-like interface
+    tty: true
+
+    # Automatically restart unless manually stopped
+    restart: unless-stopped
+
+
+  # -------------------------
+  # Mongo Express
+  # -------------------------
+  mongo-express:
+    # Official Mongo Express image from Docker Hub
+    image: mongo-express
+
+    # Automatically restart the container
+    restart: always
+
+    # Host port : Container port
+    # Open Mongo Express at http://localhost:8081
+    ports:
+      - "8081:8081"
+
+    # Mongo Express configuration
+    environment:
+
+      # MongoDB connection URL
+      # "mongo" is the Docker Compose service name
+      - ME_CONFIG_MONGODB_URL=mongodb://admin:password@mongo:27017/?authSource=admin
+
+      # Enable Mongo Express login
+      - ME_CONFIG_BASICAUTH_ENABLED=true
+
+      # Mongo Express username
+      - ME_CONFIG_BASICAUTH_USERNAME=admin
+
+      # Mongo Express password
+      - ME_CONFIG_BASICAUTH_PASSWORD=password
+
+    # Start MongoDB before Mongo Express
+    depends_on:
+      - mongo
+
+
+# -------------------------
+# Named Volumes
+# -------------------------
+volumes:
+
+  # Persistent MongoDB storage
+  # MongoDB stores its database files here
+  mongo-data:

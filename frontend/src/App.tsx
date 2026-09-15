@@ -13,7 +13,7 @@ function App() {
   const fetchUsers = () => {
     axios.get("http://localhost:5000/api/users")
       .then((res) => {
-        setUsers(res.data);
+        setUsers(res.data.users);
       })
       .catch((err) => {
         console.log(err);
@@ -54,7 +54,7 @@ function App() {
 
   return (
     <div style={{ padding: "30px" }}>
-      <h1>User Form - Docker with React</h1>
+      <h1>User Form</h1>
 
       <form onSubmit={handleSubmit}>
         <input
